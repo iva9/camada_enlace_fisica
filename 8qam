@@ -1,0 +1,98 @@
+import matplotlib.pyplot as plt 
+import numpy as np
+
+class Modulador8Qam:
+    
+    def __init__(self, ta_mod = 8, ta_transmi=24):
+
+        self.constelacao = {
+            (0, 0, 0): complex(-1, -1), #0
+            (0, 0, 1): complex(-1, 1),  #1  
+            (0, 1, 0): complex(1, -1),  #2
+            (0, 1, 1): complex(1, 1), #3
+            (1, 0, 0): complex(-1, -3), #4
+            (1, 0, 1): complex(-1, 3), #5
+            (1, 1, 0): complex(1, -3), #6
+            (1, 1, 1): complex(1, 3) #7
+            }
+    
+        self.ta_mod = ta_mod
+        self.ta_transmi = ta_transmi
+    
+    def modulacao(self,bits):
+
+        bits = np.append(bits, [0] * (3 - len(bits) % 3) if len(bits) % 3 != 0 else [])
+        tam = len(bits)
+        if tam % 3 != 0:
+            while tam % 3 != 0:
+                bits.append(0)
+    
+        # Converte bits em símbolos 8QAM de forma menos eficiente
+        bits_simbolos = []
+        for i in range(0, len(bits), 3):
+            # Cria uma tupla manualmente de 3 em 3 bits
+            simbolo = (bits[i], bits[i+1] if i+1 < len(bits) else 0, bits[i+2] if i+2 < len(bits) else 0)
+            bits_simbolos.append(simbolo)
+
+        # Inicializa uma lista vazia para armazenar os símbolos modulados
+        simbolos_modulados = []
+        for simbolo in bits_simbolos:
+            # Adiciona cada símbolo mapeado à lista manualmente
+            simbolos_modulados.append(self.constelacao[simbolo])
+
+        # Retorna a lista de símbolos modulados
+        return simbolos_modulados
+
+    def banda_base_8qam(self, simbolos_modulados):
+        duracao_simbolo = 1 / self.ta_mod
+        num_simbolos = len(simbolos_modulados)
+        tempo_simbolo = []
+
+        # Construindo manualmente o vetor de tempo para um símbolo
+        for t in range(100):
+            tempo_simbolo.append(t * duracao_simbolo / 99)  # 99 para garantir 100 pontos
+
+        tempo_total = []
+        # Construindo manualmente o vetor de tempo total
+        for i in range(num_simbolos * 100):
+            tempo_total.append(i * duracao_simbolo / (num_simbolos * 100 - 1))
+
+        forma_onda = [0] * len(tempo_total)  # Inicializa a forma de onda como uma lista de zeros
+
+        # Preenchendo a forma de onda manualmente
+        for i in range(num_simbolos):
+            for j in range(100):
+                indice = i * 100 + j
+                simbolo = simbolos_modulados[i]
+                forma_onda[indice] = simbolo * np.exp(1j * 2 * np.pi * self.ta_mod * tempo_simbolo[j])
+
+        # Convertendo a forma de onda para um array numpy no final
+        forma_onda = np.array(forma_onda, dtype=complex)
+
+        # Plotar o sinal banda base (sem a função auxiliar)
+        plt.figure(figsize=(12, 6))
+        plt.plot(tempo_total, np.real(forma_onda), label='Parte Real')
+        plt.plot(tempo_total, np.imag(forma_onda), label='Parte Imaginária', linestyle='--')
+        plt.title('Sinais dos Bauds (8QAM) no Tempo')
+        plt.xlabel('Tempo')
+        plt.ylabel('Amplitude')
+        plt.legend()
+        plt.grid()
+        plt.tight_layout()
+        plt.show()
+
+        return num_simbolos, tempo_total, forma_onda
+
+
+
+    def run(self, bits):
+        simbolos_modulados = self.modulacao(bits)
+        return self.banda_base_8qam(simbolos_modulados)
+
+if __name__ == '__main__':
+    bits = [1, 0, 1, 0 , 0 ,0 ]
+
+    modulador =  Modulador8Qam()
+    num_bauds, tempo, sinal_banda_base = modulador.run(bits)
+
+       
